@@ -1,78 +1,51 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { INITIAL_CATEGORIES, type Category } from "./types"
+import { apiClient, unwrap, type ApiEnvelope } from "@/lib/api-client"
+import type { Category } from "./types"
 
-const STORAGE_KEY = "nimbus_categories_v1"
-
-function getStoredCategories(): Category[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY)
-    if (!data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_CATEGORIES))
-      return INITIAL_CATEGORIES
-    }
-    return JSON.parse(data) as Category[]
-  } catch {
-    return INITIAL_CATEGORIES
-  }
+const categoriesKey = {
+  all: ["categories"] as const,
+  detail: (id: number) => ["categories", id] as const,
 }
 
-function saveStoredCategories(categories: Category[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(categories))
+// ── Request shapes ────────────────────────────────────────────────────────────
+
+export interface CreateCategoryPayload {
+  name: string
+  slug: string
+  icon: string
+  bgColor: string
+  href: string
+  description?: string
 }
 
-const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms))
+export type UpdateCategoryPayload = CreateCategoryPayload
+
+// ── API functions ─────────────────────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<Category[]> {
-  await delay()
-  return getStoredCategories()
+  const envelope = await apiClient.get<ApiEnvelope<Category[]>>("/categories")
+  return unwrap(envelope)
 }
 
-export async function createCategoryApi(
-  data: Omit<Category, "id" | "createdAt" | "updatedAt">
-): Promise<Category> {
-  await delay()
-  const categories = getStoredCategories()
-  const newCategory: Category = {
-    ...data,
-    id: `cat_${crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-  categories.push(newCategory)
-  saveStoredCategories(categories)
-  return newCategory
+export async function createCategoryApi(data: CreateCategoryPayload): Promise<Category> {
+  const envelope = await apiClient.post<ApiEnvelope<Category>>("/categories", data)
+  return unwrap(envelope)
 }
 
-export async function updateCategoryApi(
-  id: string,
-  data: Partial<Omit<Category, "id" | "createdAt">>
-): Promise<Category> {
-  await delay()
-  const categories = getStoredCategories()
-  const index = categories.findIndex((c) => c.id === id)
-  if (index === -1) {
-    throw new Error(`Category with id ${id} not found`)
-  }
-  const updated: Category = {
-    ...categories[index],
-    ...data,
-    updatedAt: new Date().toISOString(),
-  }
-  categories[index] = updated
-  saveStoredCategories(categories)
-  return updated
+export async function updateCategoryApi(id: number, data: UpdateCategoryPayload): Promise<Category> {
+  const envelope = await apiClient.put<ApiEnvelope<Category>>(`/categories/${id}`, data)
+  return unwrap(envelope)
 }
 
-export async function deleteCategoryApi(id: string): Promise<void> {
-  await delay()
-  const categories = getStoredCategories()
-  const filtered = categories.filter((c) => c.id !== id)
-  saveStoredCategories(filtered)
+export async function deleteCategoryApi(id: number): Promise<void> {
+  await apiClient.delete<ApiEnvelope<null>>(`/categories/${id}`)
 }
+
+// ── TanStack Query hooks ──────────────────────────────────────────────────────
 
 export function useCategories() {
   return useQuery({
-    queryKey: ["categories"],
+    queryKey: categoriesKey.all,
     queryFn: fetchCategories,
   })
 }
@@ -82,7 +55,7 @@ export function useCreateCategory() {
   return useMutation({
     mutationFn: createCategoryApi,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      queryClient.invalidateQueries({ queryKey: categoriesKey.all })
     },
   })
 }
@@ -90,10 +63,10 @@ export function useCreateCategory() {
 export function useUpdateCategory() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) =>
+    mutationFn: ({ id, data }: { id: number; data: UpdateCategoryPayload }) =>
       updateCategoryApi(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      queryClient.invalidateQueries({ queryKey: categoriesKey.all })
     },
   })
 }
@@ -103,7 +76,7 @@ export function useDeleteCategory() {
   return useMutation({
     mutationFn: deleteCategoryApi,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      queryClient.invalidateQueries({ queryKey: categoriesKey.all })
     },
   })
 }

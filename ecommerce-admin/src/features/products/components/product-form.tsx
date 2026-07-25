@@ -2,19 +2,18 @@ import { useState, useEffect, useRef } from "react"
 import { Headphones, Watch, Volume2, Glasses, Star, Plus, Trash2, Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
-  CATEGORIES,
   THEME_PRESETS,
   SPEC_ACCENT_COLORS,
-  type ProductCategory,
   type ProductIcon,
   type ProductSpec,
 } from "../types"
+import type { Category } from "@/features/categories/types"
 
 export interface ProductFormValues {
   name: string
   price: number | ""
-  desc: string
-  category: ProductCategory
+  description: string
+  categoryId: number | ""
   icon: ProductIcon
   themeFrom: string
   themeTo: string
@@ -25,8 +24,8 @@ export interface ProductFormValues {
 export const DEFAULT_FORM_VALUES: ProductFormValues = {
   name: "",
   price: 0,
-  desc: "",
-  category: CATEGORIES[0],
+  description: "",
+  categoryId: "",
   icon: "headphones",
   themeFrom: THEME_PRESETS[0].from,
   themeTo: THEME_PRESETS[0].to,
@@ -41,6 +40,8 @@ interface ProductFormProps {
   onCancelEdit?: () => void
   isSubmitting?: boolean
   isEditing?: boolean
+  /** Categories fetched from the API — passed in from the parent page */
+  categories?: Category[]
 }
 
 export function ProductForm({
@@ -50,6 +51,7 @@ export function ProductForm({
   onCancelEdit,
   isSubmitting = false,
   isEditing = false,
+  categories = [],
 }: ProductFormProps) {
   const [nameError, setNameError] = useState<string | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -164,7 +166,7 @@ export function ProductForm({
           type="text"
           value={formValues.name}
           onChange={(e) => updateField("name", e.target.value)}
-          placeholder="e.g. Nimbus Pro Wireless Headphones"
+          placeholder="e.g. Sony WH-1000XM6"
           className={cn(
             "rounded-lg border px-3 py-2 text-sm text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500",
             nameError ? "border-red-500 ring-1 ring-red-500" : "border-gray-300 hover:border-gray-400"
@@ -195,36 +197,40 @@ export function ProductForm({
 
       {/* 3. Description */}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="product-desc" className="text-xs font-bold uppercase tracking-wider text-gray-700">
+        <label htmlFor="product-description" className="text-xs font-bold uppercase tracking-wider text-gray-700">
           Description
         </label>
         <textarea
-          id="product-desc"
+          id="product-description"
           rows={3}
-          value={formValues.desc}
-          onChange={(e) => updateField("desc", e.target.value)}
+          value={formValues.description}
+          onChange={(e) => updateField("description", e.target.value)}
           placeholder="Brief product description for the storefront..."
           className="rounded-lg border border-gray-300 p-3 text-sm text-gray-900 transition-colors hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
         />
       </div>
 
-      {/* 4. Category */}
+      {/* 4. Category — populated from the real API */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="product-category" className="text-xs font-bold uppercase tracking-wider text-gray-700">
           Category <span className="text-red-500">*</span>
         </label>
         <select
           id="product-category"
-          value={formValues.category}
-          onChange={(e) => updateField("category", e.target.value as ProductCategory)}
+          value={formValues.categoryId}
+          onChange={(e) => updateField("categoryId", e.target.value === "" ? "" : Number(e.target.value))}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 bg-white transition-colors hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
+          <option value="">— select a category —</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
             </option>
           ))}
         </select>
+        {categories.length === 0 && (
+          <p className="text-xs text-amber-600">No categories found. Create a category first.</p>
+        )}
       </div>
 
       {/* 5. Icon Visual Picker */}

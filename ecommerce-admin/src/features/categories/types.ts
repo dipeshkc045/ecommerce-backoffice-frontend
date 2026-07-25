@@ -14,13 +14,13 @@ import {
 } from "lucide-react"
 
 export interface Category {
-  id: string
+  id: number
   name: string
+  slug: string
   icon: string
   bgColor: string
-  href?: string
-  createdAt?: string
-  updatedAt?: string
+  href: string
+  description?: string
 }
 
 export interface PresetColor {
@@ -52,15 +52,4 @@ export const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   Gamepad2,
 }
 
-export const INITIAL_CATEGORIES: Category[] = [
-  { id: "1", name: "Electronics", icon: "Zap", bgColor: "bg-indigo-100", href: "/category/electronics" },
-  { id: "2", name: "Fashion", icon: "Shirt", bgColor: "bg-rose-100", href: "/category/fashion" },
-  { id: "3", name: "Luxury", icon: "Gem", bgColor: "bg-amber-100", href: "/category/luxury" },
-  { id: "4", name: "Home Decor", icon: "Home", bgColor: "bg-emerald-100", href: "/category/home-decor" },
-  { id: "5", name: "Health & Beauty", icon: "Heart", bgColor: "bg-pink-100", href: "/category/health-beauty" },
-  { id: "6", name: "Groceries", icon: "ShoppingBag", bgColor: "bg-teal-100", href: "/category/groceries" },
-  { id: "7", name: "Sneakers", icon: "Activity", bgColor: "bg-blue-100", href: "/category/sneakers" },
-  { id: "8", name: "Sports", icon: "Trophy", bgColor: "bg-orange-100", href: "/category/sports" },
-  { id: "9", name: "Books", icon: "BookOpen", bgColor: "bg-yellow-100", href: "/category/books" },
-  { id: "10", name: "Gaming", icon: "Gamepad2", bgColor: "bg-purple-100", href: "/category/gaming" },
-]
+

@@ -6,6 +6,17 @@ export interface ProductSpec {
 
 export type ProductIcon = "headphones" | "vrheadset" | "watch" | "speaker"
 
+/** Category as returned nested inside a Product by the API. */
+export interface ProductCategory {
+  id: number
+  name: string
+  slug: string
+  icon: string
+  bgColor: string
+  href: string
+  description?: string
+}
+
 export const CATEGORIES = [
   "Audio",
   "Wearables",
@@ -16,13 +27,16 @@ export const CATEGORIES = [
   "Other",
 ] as const
 
-export type ProductCategory = (typeof CATEGORIES)[number]
+export type ProductCategoryName = (typeof CATEGORIES)[number]
 
 export interface Product {
-  id: string
+  id: number
   name: string
+  /** Backend field name is `description` */
+  description: string
+  sku: string
   price: number
-  desc: string
+  status: "ACTIVE" | "INACTIVE" | "DISCONTINUED"
   category: ProductCategory
   icon: ProductIcon
   themeFrom: string

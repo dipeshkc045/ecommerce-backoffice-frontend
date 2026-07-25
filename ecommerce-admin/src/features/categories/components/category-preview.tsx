@@ -3,7 +3,7 @@ import { ICON_MAP, type Category } from "../types"
 
 interface CategoryPreviewProps {
   categories: Category[]
-  editingId: string | null
+  editingId: number | null
   formData: {
     name: string
     icon: string

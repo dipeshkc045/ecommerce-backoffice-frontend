@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { toast } from "sonner"
 import { usePermission } from "@/hooks/use-auth"
 import type { Product } from "./types"
 import {
@@ -6,7 +7,9 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  type CreateProductPayload,
 } from "./api"
+import { useCategories } from "@/features/categories/api"
 import { ProductForm, DEFAULT_FORM_VALUES, type ProductFormValues } from "./components/product-form"
 import { ProductCard } from "./components/product-card"
 import { ProductGrid } from "./components/product-grid"
@@ -17,11 +20,11 @@ export function ProductsPage() {
   // State management
   const [selectedCategory, setSelectedCategory] = useState<string>("All Categories")
   const [formValues, setFormValues] = useState<ProductFormValues>(DEFAULT_FORM_VALUES)
-  const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [editingProductId, setEditingProductId] = useState<number | null>(null)
 
   // API hooks
-  const { data: allProducts = [], isLoading: isLoadingAll } = useProducts("All Categories")
-  const { data: filteredProducts = [], isLoading: isLoadingFiltered } = useProducts(selectedCategory)
+  const { data: allProducts = [], isLoading: isLoadingAll } = useProducts()
+  const { data: categories = [] } = useCategories()
 
   const createProductMutation = useCreateProduct()
   const updateProductMutation = useUpdateProduct()
@@ -29,14 +32,20 @@ export function ProductsPage() {
 
   const isSubmitting = createProductMutation.isPending || updateProductMutation.isPending
 
+  // Filter products by selected category name client-side (API filters by ID; we keep it simple)
+  const filteredProducts =
+    selectedCategory === "All Categories"
+      ? allProducts
+      : allProducts.filter((p) => p.category?.name === selectedCategory)
+
   // Handle Edit Action from Grid
   const handleEditProduct = (product: Product) => {
     setEditingProductId(product.id)
     setFormValues({
       name: product.name,
       price: product.price,
-      desc: product.desc || "",
-      category: product.category,
+      description: product.description || "",
+      categoryId: product.category?.id ?? "",
       icon: product.icon,
       themeFrom: product.themeFrom,
       themeTo: product.themeTo,
@@ -55,11 +64,11 @@ export function ProductsPage() {
 
   // Handle Submit (Create or Update)
   const handleSubmitForm = async (values: ProductFormValues) => {
-    const payload = {
+    const payload: CreateProductPayload = {
       name: values.name.trim(),
       price: typeof values.price === "number" ? values.price : 0,
-      desc: values.desc.trim(),
-      category: values.category,
+      description: values.description.trim(),
+      categoryId: typeof values.categoryId === "number" ? values.categoryId : 0,
       icon: values.icon,
       themeFrom: values.themeFrom,
       themeTo: values.themeTo,
@@ -67,26 +76,53 @@ export function ProductsPage() {
       specs: values.specs.filter((s) => s.label.trim() !== "" || s.value.trim() !== ""),
     }
 
-    if (editingProductId) {
-      await updateProductMutation.mutateAsync({
-        id: editingProductId,
-        data: payload,
-      })
-    } else {
-      await createProductMutation.mutateAsync(payload)
+    try {
+      if (editingProductId !== null) {
+        await updateProductMutation.mutateAsync({
+          id: editingProductId,
+          data: payload,
+        })
+        toast.success("Product updated successfully")
+      } else {
+        await createProductMutation.mutateAsync(payload)
+        toast.success("Product created successfully")
+      }
+      // Reset Form to Clean State
+      handleCancelEdit()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save product")
     }
-
-    // Reset Form to Clean State
-    handleCancelEdit()
   }
 
   // Handle Delete Action
-  const handleDeleteProduct = async (id: string) => {
-    await deleteProductMutation.mutateAsync(id)
-    if (editingProductId === id) {
-      handleCancelEdit()
+  const handleDeleteProduct = async (id: number) => {
+    try {
+      await deleteProductMutation.mutateAsync(id)
+      toast.success("Product deleted")
+      if (editingProductId === id) handleCancelEdit()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete product")
     }
   }
+
+  // Build a live preview product from form values for the preview card
+  const previewProduct = {
+    name: formValues.name,
+    price: typeof formValues.price === "number" ? formValues.price : 0,
+    description: formValues.description,
+    category: categories.find((c) => c.id === formValues.categoryId),
+    icon: formValues.icon,
+    themeFrom: formValues.themeFrom,
+    themeTo: formValues.themeTo,
+    rating: formValues.rating,
+    specs: formValues.specs,
+  }
+
+  // Derive unique category names for the grid filter from loaded products
+  const categoryOptions = [
+    "All Categories",
+    ...Array.from(new Set(allProducts.map((p) => p.category?.name).filter(Boolean))),
+  ]
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -94,7 +130,7 @@ export function ProductsPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">Product Management</h1>
         <p className="text-sm text-gray-500">
-          Create, customize, and manage products for the Nimbus storefront catalog.
+          Create, customize, and manage products for the storefront catalog.
         </p>
       </div>
 
@@ -110,16 +146,17 @@ export function ProductsPage() {
               onCancelEdit={handleCancelEdit}
               isSubmitting={isSubmitting}
               isEditing={!!editingProductId}
+              categories={categories}
             />
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm text-gray-500 text-xs font-medium">
-              You have read-only access to products. You must have the <span className="font-bold">products:edit</span> permission to create or edit products.
+              You have read-only access. The <span className="font-bold text-gray-900">products:edit</span> permission is required to create or edit products.
             </div>
           )}
         </div>
 
-        {/* Live Preview Panel (Sticky) */}
-        <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-6">
+        {/* Right Panel: Live Preview */}
+        <div className="lg:col-span-5 xl:col-span-4 sticky top-6">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
@@ -132,7 +169,7 @@ export function ProductsPage() {
             </div>
 
             {/* Single Source of Truth ProductCard in Full Preview Mode */}
-            <ProductCard product={formValues} mode="preview" />
+            <ProductCard product={previewProduct} mode="preview" />
           </div>
         </div>
       </div>
@@ -147,7 +184,8 @@ export function ProductsPage() {
           onEditProduct={handleEditProduct}
           onDeleteProduct={handleDeleteProduct}
           canEdit={canEdit}
-          isLoading={isLoadingAll || isLoadingFiltered}
+          isLoading={isLoadingAll}
+          categoryOptions={categoryOptions}
         />
       </div>
     </div>

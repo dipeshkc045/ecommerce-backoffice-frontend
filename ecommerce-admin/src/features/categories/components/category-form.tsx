@@ -7,6 +7,7 @@ export interface CategoryFormValues {
   icon: string
   bgColor: string
   href?: string
+  description?: string
 }
 
 interface CategoryFormProps {
@@ -14,7 +15,7 @@ interface CategoryFormProps {
   onChange: (values: CategoryFormValues) => void
   onSubmit: (e: React.FormEvent) => void
   onCancel: () => void
-  editingId: string | null
+  editingId: number | null
   isSubmitting?: boolean
 }
 
@@ -57,6 +58,21 @@ export function CategoryForm({
             onChange={(e) => onChange({ ...formData, name: e.target.value })}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors"
             required
+          />
+        </div>
+
+        {/* Description Input */}
+        <div>
+          <label htmlFor="category-description" className="block text-xs font-medium text-slate-400 mb-1">
+            Description <span className="text-slate-600">(optional)</span>
+          </label>
+          <textarea
+            id="category-description"
+            rows={2}
+            placeholder="e.g. Wearable smart watch devices"
+            value={formData.description ?? ""}
+            onChange={(e) => onChange({ ...formData, description: e.target.value })}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors resize-none"
           />
         </div>
 

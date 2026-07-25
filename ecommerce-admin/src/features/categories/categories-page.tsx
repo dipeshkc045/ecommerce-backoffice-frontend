@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { Sparkles } from "lucide-react"
+import { toast } from "sonner"
 import { usePermission } from "@/hooks/use-auth"
 import type { Category } from "./types"
 import {
@@ -7,6 +8,7 @@ import {
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
+  type CreateCategoryPayload,
 } from "./api"
 import { CategoryPreview } from "./components/category-preview"
 import { CategoryForm, type CategoryFormValues } from "./components/category-form"
@@ -17,6 +19,12 @@ const DEFAULT_FORM_DATA: CategoryFormValues = {
   icon: "Zap",
   bgColor: "bg-indigo-100",
   href: "",
+  description: "",
+}
+
+/** Derive a URL-safe slug from the category name. */
+function toSlug(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 }
 
 export function CategoriesPage() {
@@ -24,7 +32,7 @@ export function CategoriesPage() {
 
   // State
   const [formData, setFormData] = useState<CategoryFormValues>(DEFAULT_FORM_DATA)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   // API hooks
   const { data: categories = [], isLoading } = useCategories()
@@ -41,6 +49,7 @@ export function CategoriesPage() {
       icon: category.icon,
       bgColor: category.bgColor,
       href: category.href || "",
+      description: category.description ?? "",
     })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -50,36 +59,46 @@ export function CategoriesPage() {
     setFormData(DEFAULT_FORM_DATA)
   }
 
+  const buildPayload = (values: CategoryFormValues): CreateCategoryPayload => {
+    const slug = toSlug(values.name)
+    return {
+      name: values.name.trim(),
+      slug,
+      icon: values.icon,
+      bgColor: values.bgColor,
+      href: values.href ? values.href.trim() : `/category/${slug}`,
+      description: values.description?.trim() || undefined,
+    }
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim()) return
 
-    if (editingId) {
-      await updateCategoryMutation.mutateAsync({
-        id: editingId,
-        data: {
-          name: formData.name.trim(),
-          icon: formData.icon,
-          bgColor: formData.bgColor,
-          href: formData.href ? formData.href.trim() : `/category/${formData.name.toLowerCase().replace(/\s+/g, "-")}`,
-        },
-      })
-    } else {
-      await createCategoryMutation.mutateAsync({
-        name: formData.name.trim(),
-        icon: formData.icon,
-        bgColor: formData.bgColor,
-        href: formData.href ? formData.href.trim() : `/category/${formData.name.toLowerCase().replace(/\s+/g, "-")}`,
-      })
+    try {
+      if (editingId !== null) {
+        await updateCategoryMutation.mutateAsync({
+          id: editingId,
+          data: buildPayload(formData),
+        })
+        toast.success("Category updated successfully")
+      } else {
+        await createCategoryMutation.mutateAsync(buildPayload(formData))
+        toast.success("Category created successfully")
+      }
+      handleCancel()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save category")
     }
-
-    handleCancel()
   }
 
-  const handleDelete = async (id: string) => {
-    await deleteCategoryMutation.mutateAsync(id)
-    if (editingId === id) {
-      handleCancel()
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteCategoryMutation.mutateAsync(id)
+      toast.success("Category deleted")
+      if (editingId === id) handleCancel()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete category")
     }
   }
 

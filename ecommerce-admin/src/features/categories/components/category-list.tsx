@@ -5,7 +5,7 @@ import { ICON_MAP, type Category } from "../types"
 interface CategoryListProps {
   categories: Category[]
   onEdit: (category: Category) => void
-  onDelete: (id: string) => void
+  onDelete: (id: number) => void
   canEdit?: boolean
   isLoading?: boolean
 }

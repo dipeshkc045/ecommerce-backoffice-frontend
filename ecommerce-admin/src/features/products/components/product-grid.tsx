@@ -9,7 +9,7 @@ interface ProductGridProps {
   selectedCategory: string
   onCategoryChange: (category: string) => void
   onEditProduct: (product: Product) => void
-  onDeleteProduct: (productId: string) => void
+  onDeleteProduct: (productId: number) => void
   canEdit?: boolean
   isLoading?: boolean
 }

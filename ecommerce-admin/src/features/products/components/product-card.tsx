@@ -3,9 +3,8 @@ import { Edit2, Trash2 } from "lucide-react"
 import type { Product, ProductIcon } from "../types"
 
 export interface ProductCardProps {
-  product?: Partial<Omit<Product, "price">> & {
+  product?: Partial<Product> & {
     price?: number | ""
-    description?: string
   }
   mode?: "preview" | "grid"
   onEdit?: () => void
@@ -89,7 +88,7 @@ export function ProductCard({
   product = {
     name: "Wireless Headphones",
     price: 89,
-    desc: "Premium noise-cancelling audio with all-day comfort.",
+    description: "Premium noise-cancelling audio with all-day comfort.",
     icon: "headphones",
     themeFrom: "#1AA3E8",
     themeTo: "#0B3B63",
@@ -117,7 +116,7 @@ export function ProductCard({
     specs = [],
   } = product
 
-  const description = product.desc || product.description || ""
+  const description = product.description || ""
   const isGrid = mode === "grid"
 
   return (
@@ -171,7 +170,7 @@ export function ProductCard({
       ) : (
         category && (
           <div className="absolute top-4 left-4 rounded-full bg-black/25 px-3 py-1 text-[11px] font-extrabold text-white uppercase tracking-wider backdrop-blur-sm z-10">
-            {category}
+            {typeof category === "string" ? category : category.name}
           </div>
         )
       )}
