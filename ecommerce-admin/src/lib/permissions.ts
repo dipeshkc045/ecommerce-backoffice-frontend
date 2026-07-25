@@ -15,6 +15,8 @@ export type Permission =
   | "inventory:edit"
   | "products:view"
   | "products:edit"
+  | "categories:view"
+  | "categories:edit"
   | "customers:view"
   | "customers:edit"
   | "settings:view"
@@ -28,6 +30,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "orders:view", "orders:edit", "orders:refund",
     "inventory:view", "inventory:edit",
     "products:view", "products:edit",
+    "categories:view", "categories:edit",
     "customers:view", "customers:edit",
     "settings:view", "settings:edit",
     "users:manage",
@@ -36,15 +39,16 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "orders:view", "orders:edit", "orders:refund",
     "inventory:view", "inventory:edit",
     "products:view", "products:edit",
+    "categories:view", "categories:edit",
     "customers:view", "customers:edit",
     "settings:view",
   ],
   support: [
     "orders:view", "orders:edit",
-    "products:view",
+    "products:view", "categories:view",
     "customers:view",
   ],
   viewer: [
-    "orders:view", "inventory:view", "products:view", "customers:view",
+    "orders:view", "inventory:view", "products:view", "categories:view", "customers:view",
   ],
 }

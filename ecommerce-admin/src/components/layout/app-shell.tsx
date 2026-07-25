@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom"
-import { LayoutDashboard, ShoppingCart, Package, PackageSearch, Users, Settings } from "lucide-react"
+import { LayoutDashboard, ShoppingCart, Package, PackageSearch, Grid2X2, Users, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth, usePermission } from "@/hooks/use-auth"
 import type { Permission } from "@/lib/permissions"
@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/orders", label: "Orders", icon: ShoppingCart, permission: "orders:view" },
   { to: "/products", label: "Products", icon: PackageSearch, permission: "products:view" },
+  { to: "/categories", label: "Categories", icon: Grid2X2, permission: "categories:view" },
   { to: "/inventory", label: "Inventory", icon: Package, permission: "inventory:view" },
   { to: "/customers", label: "Customers", icon: Users, permission: "customers:view" },
   { to: "/settings", label: "Settings", icon: Settings, permission: "settings:view" },
