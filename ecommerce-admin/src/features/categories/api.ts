@@ -23,12 +23,12 @@ export type UpdateCategoryPayload = CreateCategoryPayload
 // ── API functions ─────────────────────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<Category[]> {
-  const envelope = await apiClient.get<ApiEnvelope<Category[]>>("/categories")
+  const envelope = await apiClient.get<ApiEnvelope<Category[]>>("/product-service/api/categories")
   return unwrap(envelope)
 }
 
 export async function createCategoryApi(data: CreateCategoryPayload): Promise<Category> {
-  const envelope = await apiClient.post<ApiEnvelope<Category>>("/categories", data)
+  const envelope = await apiClient.post<ApiEnvelope<Category>>("/product-service/api/categories", data)
   return unwrap(envelope)
 }
 
@@ -38,7 +38,7 @@ export async function updateCategoryApi(id: number, data: UpdateCategoryPayload)
 }
 
 export async function deleteCategoryApi(id: number): Promise<void> {
-  await apiClient.delete<ApiEnvelope<null>>(`/categories/${id}`)
+  await apiClient.delete<ApiEnvelope<null>>(`product-service/api/categories/${id}`)
 }
 
 // ── TanStack Query hooks ──────────────────────────────────────────────────────

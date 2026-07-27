@@ -7,7 +7,7 @@ import { useOrders } from "./api"
 import { orderColumns } from "./columns"
 
 export function OrdersPage() {
-  const { data: orders, isLoading } = useOrders()
+  const { data: orders, isLoading } = useOrders('a49e4b47-52b7-45bb-9d99-b527d4214773')
   const [search, setSearch] = React.useState("")
 
   const filtered = React.useMemo(() => {

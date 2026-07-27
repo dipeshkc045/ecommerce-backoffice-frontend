@@ -3,8 +3,7 @@
  * the real base URL / auth scheme, this is the only file that changes —
  * feature code never calls fetch() directly.
  */
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api"
-
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
