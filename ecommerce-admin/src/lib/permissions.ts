@@ -1,54 +1,18 @@
 /**
- * RBAC model.
- *
- * Deliberately granular (resource:action) rather than coarse roles like
- * "admin" / "editor", because enterprise buyers WILL ask for custom roles
- * ("support staff can view orders but not refund them") and that's much
- * easier to satisfy if permissions are the atomic unit and roles are just
- * named bundles of permissions.
+ * Staff permissions as the platform names them (ADR-0023). They come from GET /admin/v1/me, decided on the server
+ * from the person's Keycloak roles; the app only uses them to show or hide screens and buttons. The server checks
+ * every call again, so hiding a button is a convenience, not the protection.
  */
 export type Permission =
-  | "orders:view"
-  | "orders:edit"
-  | "orders:refund"
+  | "staff:self"
+  | "catalog:view"
+  | "catalog:write"
+  | "pricing:write"
   | "inventory:view"
-  | "inventory:edit"
-  | "products:view"
-  | "products:edit"
-  | "categories:view"
-  | "categories:edit"
+  | "inventory:write"
+  | "orders:view"
+  | "orders:fulfil"
+  | "payments:view"
+  | "payments:collect"
   | "customers:view"
-  | "customers:edit"
-  | "settings:view"
-  | "settings:edit"
-  | "users:manage"
-
-export type Role = "owner" | "admin" | "support" | "viewer"
-
-export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  owner: [
-    "orders:view", "orders:edit", "orders:refund",
-    "inventory:view", "inventory:edit",
-    "products:view", "products:edit",
-    "categories:view", "categories:edit",
-    "customers:view", "customers:edit",
-    "settings:view", "settings:edit",
-    "users:manage",
-  ],
-  admin: [
-    "orders:view", "orders:edit", "orders:refund",
-    "inventory:view", "inventory:edit",
-    "products:view", "products:edit",
-    "categories:view", "categories:edit",
-    "customers:view", "customers:edit",
-    "settings:view",
-  ],
-  support: [
-    "orders:view", "orders:edit",
-    "products:view", "categories:view",
-    "customers:view",
-  ],
-  viewer: [
-    "orders:view", "inventory:view", "products:view", "categories:view", "customers:view",
-  ],
-}
+  | "audit:view"
