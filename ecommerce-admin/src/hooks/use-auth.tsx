@@ -1,66 +1,66 @@
 import * as React from "react"
-import { ROLE_PERMISSIONS, type Permission, type Role } from "@/lib/permissions"
+import { apiClient } from "@/lib/api-client"
+import { getAccessToken, login, logout } from "@/lib/oidc"
+import type { Permission } from "@/lib/permissions"
 
+/** The signed-in staff member, as GET /admin/v1/me describes them. */
 export interface CurrentUser {
-  id: string
-  name: string
-  email: string
-  role: Role
+  subject: string
+  username: string
+  roles: string[]
+  permissions: string[]
 }
 
 interface AuthContextValue {
   user: CurrentUser | null
   isLoading: boolean
+  error: string | null
+  signOut: () => void
 }
 
-const AuthContext = React.createContext<AuthContextValue>({
-  user: null,
-  isLoading: true,
-})
+const AuthContext = React.createContext<AuthContextValue>({ user: null, isLoading: true, error: null, signOut: () => {} })
 
-/**
- * Replace this with your real auth fetch (session cookie check, token
- * refresh, whatever the backend team lands on). Keeping it isolated here
- * means the rest of the app never talks to auth internals directly.
- */
+/** Signs in through Keycloak when needed, then asks the platform who this is and what they may do. */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<CurrentUser | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    // TODO: replace with real session/me endpoint call
-    const mockUser: CurrentUser = {
-      id: "u_1",
-      name: "Alex Rivera",
-      email: "alex@company.com",
-      role: "admin",
+    let cancelled = false
+    ;(async () => {
+      if (!(await getAccessToken())) {
+        await login()
+        return
+      }
+      try {
+        const me = await apiClient.get<CurrentUser>("/admin/v1/me")
+        if (!cancelled) setUser(me)
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Could not load your account")
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-    const timer = setTimeout(() => {
-      setUser(mockUser)
-      setIsLoading(false)
-    }, 200)
-    return () => clearTimeout(timer)
   }, [])
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, isLoading, error, signOut: logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
   return React.useContext(AuthContext)
 }
 
-/** Usage: const canEditOrders = usePermission("orders:edit") */
+/** Usage: const canShip = usePermission("orders:fulfil") */
 export function usePermission(permission: Permission): boolean {
   const { user } = useAuth()
-  if (!user) return false
-  return ROLE_PERMISSIONS[user.role].includes(permission)
+  return !!user && user.permissions.includes(permission)
 }
 
-/** Usage: <RequirePermission permission="orders:refund">...</RequirePermission> */
+/** Usage: <RequirePermission permission="pricing:write">…</RequirePermission> */
 export function RequirePermission({
   permission,
   fallback = null,
@@ -70,6 +70,5 @@ export function RequirePermission({
   fallback?: React.ReactNode
   children: React.ReactNode
 }) {
-  const allowed = usePermission(permission)
-  return <>{allowed ? children : fallback}</>
+  return <>{usePermission(permission) ? children : fallback}</>
 }
