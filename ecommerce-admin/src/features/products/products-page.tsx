@@ -49,11 +49,16 @@ export function ProductsPage() {
       {products.error ? <ErrorNote error={products.error} /> : null}
       <DataTable
         columns={columns}
-        data={products.data?.items ?? []}
+        data={products.data?.pages.flatMap((p) => p.items) ?? []}
         isLoading={products.isLoading}
         emptyMessage="No products here yet."
         onRowClick={(p) => navigate(`/products/${p.id}`)}
       />
+      {products.hasNextPage && (
+        <Button variant="secondary" className="self-start" disabled={products.isFetchingNextPage} onClick={() => products.fetchNextPage()}>
+          Load more
+        </Button>
+      )}
       {creating && <NewProductDialog onClose={() => setCreating(false)} onCreated={(p) => navigate(`/products/${p.id}`)} />}
     </div>
   )

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import type { ColumnDef } from "@tanstack/react-table"
+import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/shared/data-table"
 import { ErrorNote, FilterTabs, PageHeader, StatusBadge } from "@/components/shared/page"
 import { dateTime, npr } from "@/lib/money"
@@ -35,12 +36,16 @@ export function OrdersPage() {
       {orders.error ? <ErrorNote error={orders.error} /> : null}
       <DataTable
         columns={columns}
-        data={orders.data?.items ?? []}
+        data={orders.data?.pages.flatMap((p) => p.items) ?? []}
         isLoading={orders.isLoading}
         emptyMessage="Nothing waiting here."
         onRowClick={(o) => navigate(`/orders/${o.order_id}`)}
       />
-      {orders.data?.has_more && <p className="text-xs text-[var(--color-ink-muted)]">Showing the newest 50.</p>}
+      {orders.hasNextPage && (
+        <Button variant="secondary" className="self-start" disabled={orders.isFetchingNextPage} onClick={() => orders.fetchNextPage()}>
+          Load more
+        </Button>
+      )}
     </div>
   )
 }

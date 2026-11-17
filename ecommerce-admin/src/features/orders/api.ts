@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 
 // ── Shapes of /admin/v1/orders (ecommerce-platform #38) ───────────────────────────────────────────────────────────
@@ -50,10 +50,14 @@ const keys = {
   one: (id: string) => ["orders", "one", id] as const,
 }
 
+/** Pages of 50, newest first; `fetchNextPage` follows the server's cursor. */
 export function useOrders(status: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: keys.list(status),
-    queryFn: () => apiClient.get<OrderPage>(`/admin/v1/orders?limit=50${status ? `&status=${status}` : ""}`),
+    initialPageParam: "",
+    queryFn: ({ pageParam }) =>
+      apiClient.get<OrderPage>(`/admin/v1/orders?limit=50${status ? `&status=${status}` : ""}${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ""}`),
+    getNextPageParam: (last) => (last.has_more && last.next_cursor ? last.next_cursor : undefined),
     refetchInterval: 30_000, // a work list: new orders appear without a reload
   })
 }
@@ -77,8 +81,7 @@ export function useOrderAction(orderId: string) {
       return apiClient.post<{ status: OrderStatus }>(`/admin/v1/orders/${orderId}/${kind}`, body)
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: keys.one(orderId) })
-      qc.invalidateQueries({ queryKey: ["orders", "list"] })
+      qc.invalidateQueries({ queryKey: ["orders"] }) // this order, the lists and the dashboard counts
       qc.invalidateQueries({ queryKey: ["cod"] })
     },
   })

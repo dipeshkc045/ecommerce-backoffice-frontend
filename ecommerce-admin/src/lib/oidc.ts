@@ -48,6 +48,7 @@ function randomString(): string {
 
 /** Sends the browser to Keycloak. {@code returnTo} is where to land after signing in. */
 export async function login(returnTo: string = window.location.pathname + window.location.search): Promise<void> {
+  returnTo = safeReturnPath(returnTo)
   const verifier = randomString()
   const state = randomString()
   const challenge = base64Url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)))
@@ -81,7 +82,22 @@ export async function completeLogin(search: string): Promise<string> {
     redirect_uri: redirectUri(),
     code_verifier: pending.verifier,
   })
-  return pending.returnTo.startsWith("/") && !pending.returnTo.startsWith(REDIRECT_PATH) ? pending.returnTo : "/"
+  return safeReturnPath(pending.returnTo)
+}
+
+/**
+ * Where to go after sign-in: a path on this site only. "//evil.example" or "/\\evil.example" would be read by the
+ * browser as another host (an open redirect), so the value is resolved against our origin and rejected otherwise.
+ */
+export function safeReturnPath(returnTo: string | undefined): string {
+  if (!returnTo || !returnTo.startsWith("/") || returnTo.startsWith("//") || returnTo.startsWith("/\\")) return "/"
+  try {
+    const url = new URL(returnTo, window.location.origin)
+    if (url.origin !== window.location.origin || url.pathname.startsWith(REDIRECT_PATH)) return "/"
+    return url.pathname + url.search + url.hash
+  } catch {
+    return "/"
+  }
 }
 
 /** A valid access token, refreshed when it is about to expire; null when nobody is signed in. */

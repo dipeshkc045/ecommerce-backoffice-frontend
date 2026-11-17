@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiClient, newIdempotencyKey } from "@/lib/api-client"
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { apiClient } from "@/lib/api-client"
 
 // ── Shapes of /admin/v1/products, /admin/v1/skus/{id}/price and /stock (ecommerce-platform #35, #37) ──────────────
 
@@ -100,10 +100,14 @@ const keys = {
 
 const ifMatch = (version: number) => ({ headers: { "If-Match": `"${version}"` } })
 
+/** Pages of 50, newest first; `fetchNextPage` follows the server's cursor. */
 export function useProducts(status: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: keys.list(status),
-    queryFn: () => apiClient.get<ProductPage>(`/admin/v1/products?limit=100${status ? `&status=${status}` : ""}`),
+    initialPageParam: "",
+    queryFn: ({ pageParam }) =>
+      apiClient.get<ProductPage>(`/admin/v1/products?limit=50${status ? `&status=${status}` : ""}${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ""}`),
+    getNextPageParam: (last) => (last.has_more && last.next_cursor ? last.next_cursor : undefined),
   })
 }
 
@@ -163,9 +167,11 @@ export function useSkuStock(skuId: string) {
 export function useReceiveStock(skuId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ quantity, note }: { quantity: number; note: string }) =>
+    // The key comes from the caller and stays the same when the user retries after an error, so a delivery whose
+    // response was lost is not counted twice
+    mutationFn: ({ key, quantity, note }: { key: string; quantity: number; note: string }) =>
       apiClient.post<SkuStock>(`/admin/v1/skus/${skuId}/stock/receipts`, { quantity, note: note || null },
-        { headers: { "Idempotency-Key": newIdempotencyKey() } }),
+        { headers: { "Idempotency-Key": key } }),
     onSuccess: (stock) => qc.setQueryData(keys.stock(skuId), stock),
   })
 }
@@ -173,9 +179,9 @@ export function useReceiveStock(skuId: string) {
 export function useAdjustStock(skuId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ delta, reason, note }: { delta: number; reason: AdjustReason; note: string }) =>
+    mutationFn: ({ key, delta, reason, note }: { key: string; delta: number; reason: AdjustReason; note: string }) =>
       apiClient.post<SkuStock>(`/admin/v1/skus/${skuId}/stock/adjustments`, { delta, reason, note: note || null },
-        { headers: { "Idempotency-Key": newIdempotencyKey() } }),
+        { headers: { "Idempotency-Key": key } }),
     onSuccess: (stock) => qc.setQueryData(keys.stock(skuId), stock),
   })
 }

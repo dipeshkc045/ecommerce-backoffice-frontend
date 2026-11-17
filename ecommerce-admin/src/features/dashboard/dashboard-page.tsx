@@ -19,9 +19,9 @@ export function DashboardPage() {
   const canPrices = usePermission("pricing:write")
   const canCash = usePermission("payments:view")
   const orders = (status: string) => apiClient.get<OrderPage>(`/admin/v1/orders?status=${status}&limit=50`)
-  const toPack = useQuery({ queryKey: ["orders", "list", "CONFIRMED"], queryFn: () => orders("CONFIRMED"), enabled: canOrders })
-  const packing = useQuery({ queryKey: ["orders", "list", "PROCESSING"], queryFn: () => orders("PROCESSING"), enabled: canOrders })
-  const shipped = useQuery({ queryKey: ["orders", "list", "SHIPPED"], queryFn: () => orders("SHIPPED"), enabled: canOrders })
+  const toPack = useQuery({ queryKey: ["orders", "count", "CONFIRMED"], queryFn: () => orders("CONFIRMED"), enabled: canOrders })
+  const packing = useQuery({ queryKey: ["orders", "count", "PROCESSING"], queryFn: () => orders("PROCESSING"), enabled: canOrders })
+  const shipped = useQuery({ queryKey: ["orders", "count", "SHIPPED"], queryFn: () => orders("SHIPPED"), enabled: canOrders })
   const approvals = useQuery({
     queryKey: ["price-changes", "PENDING"],
     queryFn: () => apiClient.get<{ items: unknown[] }>("/admin/v1/price-changes?status=PENDING"),
