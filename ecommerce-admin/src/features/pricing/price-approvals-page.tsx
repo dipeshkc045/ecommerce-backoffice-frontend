@@ -38,9 +38,10 @@ export function PriceApprovalsPage() {
             <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
               <div className="text-sm">
                 <div className="font-medium">
-                  {npr(c.current_minor)} → {npr(c.proposed_minor)} {pct !== null && <span className={pct > 0 ? "text-[var(--color-warning)]" : "text-[var(--color-danger)]"}>({pct > 0 ? "+" : ""}{pct}%)</span>}
+                  {c.kind === "SALE" ? "Sale: " : ""}{npr(c.current_minor)} → {npr(c.proposed_minor)} {pct !== null && <span className={pct > 0 ? "text-[var(--color-warning)]" : "text-[var(--color-danger)]"}>({pct > 0 ? "+" : ""}{pct}%)</span>}
                 </div>
-                <div className="text-xs text-[var(--color-ink-muted)]">SKU {c.sku_id.slice(0, 8)} · asked by {c.requested_by} · {dateTime(c.requested_at)}</div>
+                <div className="text-xs text-[var(--color-ink-muted)]">SKU {c.sku_id.slice(0, 8)} · asked by {c.requested_by} · {dateTime(c.requested_at)}
+                  {c.kind === "SALE" ? ` · runs ${dateTime(c.starts_at)} → ${dateTime(c.ends_at)}` : c.starts_at ? ` · starts ${dateTime(c.starts_at)}` : ""}</div>
               </div>
               {canDecide && (
                 mine ? (

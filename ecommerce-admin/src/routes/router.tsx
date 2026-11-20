@@ -7,6 +7,9 @@ import { ProductsPage } from "@/features/products/products-page"
 import { ProductDetailPage } from "@/features/products/product-detail-page"
 import { PriceApprovalsPage } from "@/features/pricing/price-approvals-page"
 import { CashPage } from "@/features/cash/cash-page"
+import { CategoriesPage } from "@/features/catalog/categories-page"
+import { BrandsPage } from "@/features/catalog/brands-page"
+import { AttributesPage } from "@/features/catalog/attributes-page"
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +21,9 @@ export const router = createBrowserRouter([
       { path: "orders/:id", element: <OrderDetailPage /> },
       { path: "products", element: <ProductsPage /> },
       { path: "products/:id", element: <ProductDetailPage /> },
+      { path: "categories", element: <CategoriesPage /> },
+      { path: "brands", element: <BrandsPage /> },
+      { path: "attributes", element: <AttributesPage /> },
       { path: "price-approvals", element: <PriceApprovalsPage /> },
       { path: "cash", element: <CashPage /> },
     ],

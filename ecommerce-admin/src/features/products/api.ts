@@ -12,12 +12,24 @@ export interface Sku {
   active: boolean
 }
 
+/** Text in another language: either part may be missing. */
+export interface Translation {
+  name?: string | null
+  description?: string | null
+}
+
 export interface Product {
   id: string
   name: string
   description: string | null
+  translations?: Record<string, Translation>
   status: ProductStatus
   version: number
+  brand_id?: string | null
+  primary_category_id?: string | null
+  category_ids?: string[]
+  /** Values by attribute code: text, number, true/false, or a list of choice codes. */
+  attributes?: Record<string, unknown>
   skus: Sku[]
 }
 
@@ -39,13 +51,23 @@ export interface ProductInput {
   name: string
   description: string | null
   skus: SkuInput[]
+  // A change replaces the whole product (PUT), so an edit sends all of these
+  translations?: Record<string, Translation>
+  brand_id?: string | null
+  primary_category_id?: string | null
+  category_ids?: string[]
+  attributes?: Record<string, unknown>
 }
 
 export interface PriceChange {
   change_id: string
   sku_id: string
+  /** REGULAR (the everyday price) or SALE (a lower price between two dates) */
+  kind?: "REGULAR" | "SALE"
   current_minor: number | null
   proposed_minor: number
+  starts_at?: string | null
+  ends_at?: string | null
   status: string
   requested_by: string
   requested_at: string
@@ -53,11 +75,25 @@ export interface PriceChange {
   decided_at: string | null
 }
 
+/** One row of a SKU's price timeline: a regular price, or a sale on top of it. Rows are never edited, only ended. */
+export interface PriceRow {
+  price_id: string
+  kind: "REGULAR" | "SALE"
+  amount_minor: number
+  valid_from: string
+  valid_to?: string | null
+}
+
 export interface SkuPrice {
   sku_id: string
   currency: string
+  price_list?: string
   amount_minor: number | null
+  /** What customers pay right now if a sale is running (the regular price is then shown struck through) */
+  sale_minor?: number | null
+  schedule?: PriceRow[]
   pending_change: PriceChange | null
+  pending_changes?: PriceChange[]
 }
 
 export interface SetPriceResult {
@@ -148,16 +184,33 @@ export function useSkuPrice(skuId: string) {
   return useQuery({ queryKey: keys.price(skuId), queryFn: () => apiClient.get<SkuPrice>(`/admin/v1/skus/${skuId}/price`) })
 }
 
-export function useSetPrice(skuId: string) {
+function usePriceMutation<V, R>(skuId: string, fn: (vars: V) => Promise<R>) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (amountMinor: number) =>
-      apiClient.put<SetPriceResult>(`/admin/v1/skus/${skuId}/price`, { amount_minor: amountMinor, currency: "NPR" }),
-    onSuccess: () => {
+    mutationFn: fn,
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: keys.price(skuId) })
       qc.invalidateQueries({ queryKey: ["price-changes"] })
     },
   })
+}
+
+/** Sets the regular price, now or from `startsAt` (an ISO time). More than ±20% waits for a second person. */
+export function useSetPrice(skuId: string) {
+  return usePriceMutation(skuId, ({ amountMinor, startsAt }: { amountMinor: number; startsAt?: string }) =>
+    apiClient.put<SetPriceResult>(`/admin/v1/skus/${skuId}/price`, { amount_minor: amountMinor, currency: "NPR", starts_at: startsAt ?? null }))
+}
+
+/** A sale: a lower price from `startsAt` (default now) until `endsAt`, at most a year. The key is made per form. */
+export function useAddSale(skuId: string) {
+  return usePriceMutation(skuId, ({ key, amountMinor, startsAt, endsAt }: { key: string; amountMinor: number; startsAt?: string; endsAt: string }) =>
+    apiClient.post<SetPriceResult>(`/admin/v1/skus/${skuId}/sales`,
+      { amount_minor: amountMinor, currency: "NPR", starts_at: startsAt ?? null, ends_at: endsAt }, { headers: { "Idempotency-Key": key } }))
+}
+
+/** Cancels a scheduled price or sale; a running sale ends now. */
+export function useCancelPrice(skuId: string) {
+  return usePriceMutation(skuId, (priceId: string) => apiClient.delete<void>(`/admin/v1/skus/${skuId}/prices/${priceId}`))
 }
 
 export function useSkuStock(skuId: string) {

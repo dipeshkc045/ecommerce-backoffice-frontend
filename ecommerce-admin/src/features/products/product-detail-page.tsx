@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input"
 import { ErrorNote, Field, Loading, PageHeader, StatusBadge } from "@/components/shared/page"
 import { usePermission } from "@/hooks/use-auth"
 import { ApiError, errorText } from "@/lib/api-client"
-import { usePublishProduct, useProduct, useUpdateProduct, type Product, type SkuInput } from "./api"
+import { attributesApi } from "@/features/catalog/api"
+import { usePublishProduct, useProduct, useUpdateProduct, type Product } from "./api"
+import { ClassificationFields } from "./classification-fields"
+import { fromProduct, toInput, type ProductFormState } from "./product-form-state"
 import { SkuRows } from "./sku-rows"
 import { SkuPricePanel } from "./sku-price-panel"
 import { SkuStockPanel } from "./sku-stock-panel"
@@ -24,9 +27,12 @@ export function ProductDetailPage() {
 
 function ProductEditor({ product }: { product: Product }) {
   const canWrite = usePermission("catalog:write")
-  const [name, setName] = React.useState(product.name)
-  const [description, setDescription] = React.useState(product.description ?? "")
-  const [skus, setSkus] = React.useState<SkuInput[]>(product.skus.map((s) => ({ ...s })))
+  const initial = React.useMemo(() => fromProduct(product), [product])
+  const [form, setForm] = React.useState<ProductFormState>(initial)
+  const definitions = attributesApi.useList()
+  // Publishing acts on what is saved, so unsaved edits must be saved first
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial)
+  const patch = (changes: Partial<ProductFormState>) => setForm((f) => ({ ...f, ...changes }))
   const update = useUpdateProduct()
   const publish = usePublishProduct()
 
@@ -36,7 +42,7 @@ function ProductEditor({ product }: { product: Product }) {
   const save = (e: React.FormEvent) => {
     e.preventDefault()
     update.mutate(
-      { product, vars: { name, description: description || null, skus: skus.filter((s) => s.sku_id || s.sku_code?.trim()) } },
+      { product, vars: toInput(form, definitions.data ?? []) },
       { onSuccess: () => toast.success("Saved"), onError },
     )
   }
@@ -58,8 +64,9 @@ function ProductEditor({ product }: { product: Product }) {
         actions={
           <>
             <StatusBadge status={product.status} />
+            {dirty && <span className="self-center text-xs text-[var(--color-warning)]">Unsaved changes</span>}
             {canWrite && product.status !== "PUBLISHED" && (
-              <Button onClick={() => toggle("publish")} disabled={publish.isPending}>Publish</Button>
+              <Button onClick={() => toggle("publish")} disabled={publish.isPending || dirty} title={dirty ? "Save your changes first" : undefined}>Publish</Button>
             )}
             {canWrite && product.status === "PUBLISHED" && (
               <Button variant="secondary" onClick={() => toggle("unpublish")} disabled={publish.isPending}>Unpublish</Button>
@@ -76,18 +83,24 @@ function ProductEditor({ product }: { product: Product }) {
         <CardContent>
           <form onSubmit={save} className="flex flex-col gap-4">
             <fieldset disabled={!canWrite} className="flex flex-col gap-4">
-              <Field label="Name">
-                <Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} />
-              </Field>
-              <Field label="Description">
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="rounded-[var(--radius-md)] border border-[var(--color-border-strong)] p-2 text-sm"
-                />
-              </Field>
-              <SkuRows rows={skus} onChange={setSkus} />
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Name (English)">
+                  <Input value={form.name} onChange={(e) => patch({ name: e.target.value })} required maxLength={200} />
+                </Field>
+                <Field label="नाम (Nepali)" hint="Shown to Nepali-language shoppers; English is used when empty.">
+                  <Input value={form.nameNe} lang="ne" onChange={(e) => patch({ nameNe: e.target.value })} maxLength={200} />
+                </Field>
+                <Field label="Description (English)">
+                  <textarea value={form.description} onChange={(e) => patch({ description: e.target.value })} rows={3}
+                    className="rounded-[var(--radius-md)] border border-[var(--color-border-strong)] p-2 text-sm" />
+                </Field>
+                <Field label="विवरण (Nepali)">
+                  <textarea value={form.descriptionNe} lang="ne" onChange={(e) => patch({ descriptionNe: e.target.value })} rows={3}
+                    className="rounded-[var(--radius-md)] border border-[var(--color-border-strong)] p-2 text-sm" />
+                </Field>
+              </div>
+              <ClassificationFields state={form} onChange={setForm} />
+              <SkuRows rows={form.skus} onChange={(skus) => patch({ skus })} />
             </fieldset>
             {canWrite && (
               <Button type="submit" className="self-start" disabled={update.isPending}>Save changes</Button>
