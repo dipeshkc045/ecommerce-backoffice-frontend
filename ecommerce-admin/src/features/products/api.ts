@@ -31,7 +31,46 @@ export interface Product {
   /** Values by attribute code: text, number, true/false, or a list of choice codes. */
   attributes?: Record<string, unknown>
   skus: Sku[]
+  /** In display order; the first is the main image (ecommerce-platform #34). */
+  images?: ProductImage[]
 }
+
+/** One `<source>` of a `<picture>`: a format and a ready srcset. */
+export interface ImageSource {
+  type: string
+  srcset: string
+}
+
+/** An image on a product. `src` and size are missing when the image can no longer be found. */
+export interface ProductImage {
+  asset_id: string
+  role: "MAIN" | "GALLERY"
+  /** Alt text by locale (en, ne). */
+  alt: Record<string, string>
+  width?: number | null
+  height?: number | null
+  src?: string | null
+  sources?: ImageSource[]
+}
+
+/** An uploaded image, before it is put on a product. */
+export interface UploadedImage {
+  id: string
+  mime_type: string
+  width: number
+  height: number
+  byte_size: number
+  src: string
+  sources: ImageSource[]
+}
+
+export interface ImageInput {
+  asset_id: string
+  alt?: Record<string, string>
+}
+
+/** What the platform accepts (POST /admin/v1/media); checked here too, so a wrong file fails at once. */
+export const IMAGE_LIMITS = { maxBytes: 10 * 1024 * 1024, maxImages: 8, types: ["image/jpeg", "image/png", "image/webp"] }
 
 export interface ProductPage {
   items: Product[]
@@ -176,6 +215,21 @@ function useProductChange<V>(fn: (p: Product, vars: V) => Promise<Product>) {
 
 export const useUpdateProduct = () =>
   useProductChange<ProductInput>((p, input) => apiClient.put<Product>(`/admin/v1/products/${p.id}`, input, ifMatch(p.version)))
+
+/** Replaces the product's images in the order given (PUT /admin/v1/products/{id}/images). */
+export const useSetImages = () =>
+  useProductChange<ImageInput[]>((p, images) => apiClient.put<Product>(`/admin/v1/products/${p.id}/images`, { images }, ifMatch(p.version)))
+
+/** Uploads one file. Each file gets its own key, made when it is picked, so a retry never stores it twice. */
+export function useUploadImage() {
+  return useMutation({
+    mutationFn: ({ key, file }: { key: string; file: File }) => {
+      const form = new FormData()
+      form.append("file", file)
+      return apiClient.post<UploadedImage>("/admin/v1/media", form, { headers: { "Idempotency-Key": key } })
+    },
+  })
+}
 
 export const usePublishProduct = () =>
   useProductChange<"publish" | "unpublish">((p, action) => apiClient.post<Product>(`/admin/v1/products/${p.id}/${action}`, {}, ifMatch(p.version)))
