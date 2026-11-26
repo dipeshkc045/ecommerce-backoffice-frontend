@@ -11,6 +11,7 @@ import { ApiError, errorText } from "@/lib/api-client"
 import { attributesApi } from "@/features/catalog/api"
 import { usePublishProduct, useProduct, useUpdateProduct, type Product } from "./api"
 import { ClassificationFields } from "./classification-fields"
+import { ProductImagesPanel } from "./product-images-panel"
 import { fromProduct, toInput, type ProductFormState } from "./product-form-state"
 import { SkuRows } from "./sku-rows"
 import { SkuPricePanel } from "./sku-price-panel"
@@ -108,6 +109,8 @@ function ProductEditor({ product }: { product: Product }) {
           </form>
         </CardContent>
       </Card>
+
+      <ProductImagesPanel product={product} />
 
       {product.skus.map((sku) => (
         <Card key={sku.sku_id}>

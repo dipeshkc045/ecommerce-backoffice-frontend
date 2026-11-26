@@ -33,15 +33,17 @@ async function request<T>(method: string, path: string, body?: unknown, options?
     await login()
     throw new ApiError(401, "unauthenticated", "Signing in…")
   }
+  // A file upload goes as multipart: the browser sets the Content-Type with its boundary
+  const form = body instanceof FormData
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       Accept: "application/json",
-      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...(body === undefined || form ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${token}`,
       ...options?.headers,
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : form ? body : JSON.stringify(body),
   })
 
   if (res.status === 401) {
