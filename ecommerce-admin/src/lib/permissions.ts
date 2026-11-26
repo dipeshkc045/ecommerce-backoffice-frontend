@@ -7,6 +7,8 @@ export type Permission =
   | "staff:self"
   | "catalog:view"
   | "catalog:write"
+  | "promotions:view"
+  | "promotions:write"
   | "pricing:write"
   | "inventory:view"
   | "inventory:write"
