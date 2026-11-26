@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom"
-import { Banknote, BadgeCheck, FolderTree, LayoutDashboard, LogOut, PackageSearch, ShoppingCart, SlidersHorizontal, Tag } from "lucide-react"
+import { Banknote, BadgeCheck, FolderTree, LayoutDashboard, LogOut, PackageSearch, ShoppingCart, SlidersHorizontal, Tag, TicketPercent } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ErrorNote, Loading } from "@/components/shared/page"
 import { cn } from "@/lib/utils"
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/categories", label: "Categories", icon: FolderTree, permission: "catalog:view" },
   { to: "/brands", label: "Brands", icon: Tag, permission: "catalog:view" },
   { to: "/attributes", label: "Attributes", icon: SlidersHorizontal, permission: "catalog:view" },
+  { to: "/coupons", label: "Coupons", icon: TicketPercent, permission: "promotions:view" },
   { to: "/price-approvals", label: "Price approvals", icon: BadgeCheck, permission: "pricing:write" },
   { to: "/cash", label: "Cash on delivery", icon: Banknote, permission: "payments:view" },
 ]

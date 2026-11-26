@@ -80,6 +80,7 @@ export const newIdempotencyKey = () => crypto.randomUUID()
 
 /** Friendly text for any error a mutation or query throws. */
 export function errorText(error: unknown): string {
+  if (typeof error === "string") return error // already a sentence for staff (form checks, 412 messages)
   if (error instanceof ApiError) return error.message
   if (error instanceof Error) return error.message
   return "Something went wrong"
